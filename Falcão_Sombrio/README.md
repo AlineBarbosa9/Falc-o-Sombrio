@@ -49,6 +49,7 @@ Esses mecanismos são fundamentais para assegurar **alta disponibilidade**, **se
 ## **3. Visão Geral da Operação de Drones Autônomos**
 
 A operação de **drones militares autônomos** envolve múltiplos **componentes tecnológicos** trabalhando simultaneamente. Esses elementos são responsáveis por garantir que as missões sejam executadas com **eficiência, segurança e precisão**.
+![imagem](imagens/imagens/imagens/Captura%20de%20ecrã%20de%202026-03-16%2015-35-53.png)
 
 Entre os principais elementos do sistema estão:
 
