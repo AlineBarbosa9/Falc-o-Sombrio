@@ -1,10 +1,13 @@
 **PROPOSTA DE PROJETO**
+
 **Sistema Falcão Sombrio**
 
 **Arquitetura de Software e Banco de Dados**
 
 **Alunas:** Aline Barbosa   RA: 10721348  /  Ilca Mária Luz  RA: 10444474
+
 **Disciplina:** Projeto de Software
+
 **Professor:** Rodrigo Silva
 
 ---
