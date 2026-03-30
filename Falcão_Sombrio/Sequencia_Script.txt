@@ -1,0 +1,109 @@
+@startuml
+title Fluxo Padronizado - Sistema de Drones
+
+actor Operador
+participant CentralDeControle
+participant Missao
+participant Drone
+participant SistemaComunicacao
+participant NavegacaoInteligente
+participant LogAuditoria
+
+== LOGIN ==
+
+Operador -> CentralDeControle : login(operador, senha, tokenMFA)
+
+alt Login inválido
+    CentralDeControle -> LogAuditoria : registrarLog(FALHA_SEGURANCA, "Falha no login")
+    CentralDeControle --> Operador : acesso negado
+    return
+else Login válido
+    CentralDeControle -> LogAuditoria : registrarLog(LOGIN, "Login realizado")
+    CentralDeControle --> Operador : acesso permitido
+end
+
+== INÍCIO DA MISSÃO ==
+
+Operador -> CentralDeControle : iniciarMissao(operador, missao)
+
+CentralDeControle -> Operador : temPoderDeDecisao()
+
+alt Sem permissão
+    CentralDeControle -> LogAuditoria : registrarLog(FALHA_SEGURANCA, "Sem permissão")
+    return
+else Autorizado
+
+    CentralDeControle -> Missao : definirOperadorResponsavel()
+    CentralDeControle -> Missao : iniciarMissao()
+
+    activate Missao
+    Missao -> Missao : validarEstado()
+    Missao -> Missao : verificarDrones()
+    deactivate Missao
+
+    CentralDeControle -> SistemaComunicacao : enviarComandoSeguro(droneId, "START")
+
+    CentralDeControle -> LogAuditoria : registrarLog(ALTERACAO_STATUS, "Missão iniciada")
+
+end
+
+== EXECUÇÃO ==
+
+loop enquanto missão EM_CURSO
+
+    Drone -> SistemaComunicacao : enviarTelemetria()
+
+    alt Falha de conexão
+
+        SistemaComunicacao -> SistemaComunicacao : registrarFalha()
+
+        alt limite atingido
+            SistemaComunicacao -> SistemaComunicacao : tentarReconexao()
+        end
+
+    else Comunicação OK
+
+        SistemaComunicacao -> CentralDeControle : receberTelemetria()
+
+        CentralDeControle -> NavegacaoInteligente : detectarAmeaca(bateria)
+
+        alt Ameaça detectada
+            NavegacaoInteligente -> Drone : entrarModoAlerta()
+            CentralDeControle -> LogAuditoria : registrarLog(ALTERACAO_STATUS, "Drone em alerta")
+        else Normal
+            NavegacaoInteligente --> CentralDeControle : OK
+        end
+
+    end
+
+end
+
+== ABORTO DE MISSÂO ==
+
+alt Situação crítica
+
+    CentralDeControle -> Missao : abortarMissao(motivo)
+
+    activate Missao
+    Missao -> Missao : atualizarStatus(ABORTADA)
+    deactivate Missao
+
+    CentralDeControle -> LogAuditoria : registrarLog(ALTERACAO_STATUS, "Missão abortada")
+
+end
+
+== FINALIZAÇÃO ==
+
+Operador -> CentralDeControle : finalizarMissao(operador, missao)
+
+CentralDeControle -> Missao : finalizarMissao()
+
+activate Missao
+Missao -> Missao : atualizarStatus(SUCESSO)
+deactivate Missao
+
+CentralDeControle -> SistemaComunicacao : enviarComandoSeguro(droneId, "RETURN")
+
+CentralDeControle -> LogAuditoria : registrarLog(ALTERACAO_STATUS, "Missão finalizada")
+
+@enduml
