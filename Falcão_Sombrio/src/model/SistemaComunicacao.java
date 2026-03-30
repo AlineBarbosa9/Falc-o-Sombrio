@@ -18,6 +18,10 @@ public class SistemaComunicacao {
     }
 
     public boolean enviarComandoSeguro(UUID droneId, String comando, String assinatura) {
+    	
+    	if (droneId == null || comando == null || comando.isBlank()) {
+    	    return false;
+    	}
 
         if (!validarAssinatura(assinatura)) {
             return false;
@@ -33,11 +37,9 @@ public class SistemaComunicacao {
     }
 
     public boolean receberTelemetria(Telemetria t) {
-
         if (!conexaoAtiva || t == null) {
             return false;
         }
-
         return true;
     }
 

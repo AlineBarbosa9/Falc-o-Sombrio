@@ -12,32 +12,26 @@ public class LogAuditoria {
     private final TipoAcao acao;
     private final String detalhes;
     private final Instant timestamp;
+    private final UUID missaoId;
+    private final UUID droneId;
     
-    
-    // Construtor Público
     public LogAuditoria(UUID usuarioId, TipoAcao acao, String detalhes) {
-    	
-        if (usuarioId == null) throw new IllegalArgumentException("Usuário inválido");
-        if (acao == null) throw new IllegalArgumentException("Ação inválida");
-
-        this.id = UUID.randomUUID();
-        this.usuarioId = usuarioId;
-        this.acao = acao;
-        this.detalhes = detalhes != null ? detalhes : "";
-        this.timestamp = Instant.now();
+        this(usuarioId, acao, detalhes, null, null);
     }
     
     // Construtor Público
-    public LogAuditoria(UUID usuarioId, TipoAcao acao, String detalhes, UUID missaoId, UUID droneID) {
-    	
-        if (usuarioId == null) throw new IllegalArgumentException("Usuário inválido");
-        if (acao == null) throw new IllegalArgumentException("Ação inválida");
+    public LogAuditoria(UUID usuarioId, TipoAcao acao, String detalhes, UUID missaoId, UUID droneId) {
 
-        this.id = UUID.randomUUID();
-        this.usuarioId = usuarioId;
-        this.acao = acao;
-        this.detalhes = detalhes != null ? detalhes : "";
-        this.timestamp = Instant.now();
+    	if (usuarioId == null) throw new IllegalArgumentException("Usuário inválido");
+    	if (acao == null) throw new IllegalArgumentException("Ação inválida");
+
+    	this.id = UUID.randomUUID();
+    	this.usuarioId = usuarioId;
+    	this.acao = acao;
+    	this.detalhes = (detalhes != null) ? detalhes : "";
+    	this.timestamp = Instant.now();
+    	this.missaoId = missaoId;
+    	this.droneId = droneId;
     }
     
     // Getters
@@ -55,5 +49,11 @@ public class LogAuditoria {
     }
     public Instant getTimestamp() { 
     	return timestamp; 
+    }
+    public UUID getMissaoId() {
+        return missaoId;
+    }
+    public UUID getDroneId() {
+        return droneId;
     }
 }

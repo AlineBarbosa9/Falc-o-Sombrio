@@ -1,9 +1,8 @@
 package model;
 
 import java.util.UUID;
-
 import enums.NivelAcesso;
-import enums.TipoAcao;
+
 
 public class Operador {
 
@@ -41,42 +40,17 @@ public class Operador {
     }
 
     // Validação de Acesso Simplificado
-    public void validarAcesso(String senha, String tokenMFA) {
-
-      
+    public boolean validarAcesso(String senha, String tokenMFA) {
         boolean senhaValida = this.senhaHash.equals(senha);
         boolean mfaValido = tokenMFA != null && !tokenMFA.isBlank();
 
-        // Condição de Validação
-        // Gerar Log
+        return senhaValida && mfaValido;
     }
 
     public boolean temPoderDeDecisao() {
         return this.nivelAcesso == NivelAcesso.COMANDANTE;
-    }
-
-    public void autorizarInicioMissao(Missao missao) {
-        if (missao == null) {
-            throw new IllegalArgumentException("Missão inválida");
-        }
-        
-        if (!temPoderDeDecisao()) {
-            throw new IllegalStateException("Operador sem permissão");
-        }
-        missao.definirOperadorResponsavel(this.id);
-    }
-
+    }  
     
-    
-    public LogAuditoria gerarLog(TipoAcao tipo, String detalhes) {
-        if (tipo == null) {
-            throw new IllegalArgumentException("Tipo de ação inválido");
-        }
-
-        return new LogAuditoria(this.id, tipo, detalhes);
-    }
-
-
     // Getters
     public UUID getId() { 
     	return id; 

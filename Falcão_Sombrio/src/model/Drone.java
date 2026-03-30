@@ -14,7 +14,6 @@ public class Drone {
     private StatusDrone status;
     private double bateria;
     private Coordenadas localizacao;
-    private UUID missaoId;
     private final List<Sensor> sensores;
     
     // Construtor Público
@@ -33,8 +32,22 @@ public class Drone {
         this.bateria = 100.0;
         this.sensores = new ArrayList<>();
     }
+    
+    public Drone(UUID id, String modelo, Coordenadas localizacao, StatusDrone status, double bateria) {
+        this.id = id;
+        this.modelo = modelo;
+        this.localizacao = localizacao;
+        this.status = status;
+        this.bateria = bateria;
+        this.sensores = new ArrayList<>();
+    }
 
     public void moverPara(Coordenadas destino, double consumo) {
+    	
+    	if (destino == null) {
+    	    throw new IllegalArgumentException("Destino inválido");
+    	}
+    	
         validarOperacao(consumo);
 
         this.localizacao = destino;
@@ -95,9 +108,6 @@ public class Drone {
     }
     public String getModelo() {
         return modelo;
-    }
-    public UUID getMissaoId() {
-        return missaoId;
     }
     public List<Sensor> getSensores() {
         return List.copyOf(sensores);

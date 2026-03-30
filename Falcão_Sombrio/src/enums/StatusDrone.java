@@ -4,7 +4,7 @@ public enum StatusDrone {
 	
     IDLE(0, "Aguardando comandos"),
     DECOLANDO(1, "Iniciando propulsão"),
-    EM_MISSÃO(2, "Executando rota definida"),
+    EM_MISSAO(2, "Executando rota definida"),
     RETORNANDO(3, "Voltando para a base"),
     ALERTA(4, "Falha crítica ou bateria baixa"),
     MANUTENCAO(5, "Indisponível para operações");

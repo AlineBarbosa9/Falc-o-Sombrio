@@ -2,6 +2,10 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import bd.LogAuditoriaDAO;
+import enums.TipoAcao;
 
 public class CentralDeControle {
 
@@ -17,17 +21,87 @@ public class CentralDeControle {
         this.logs = new ArrayList<>();
     }
     
-    // Gerencia a Autorização da Missão
-    public void autorizarMissao(Operador operador, Missao missao) {
+    private void registrarLog(UUID usuarioId, TipoAcao acao, String detalhes) {
+        LogAuditoria log = new LogAuditoria(usuarioId, acao, detalhes);
+        logs.add(log);
 
-        if (operador == null || missao == null) {
-            throw new IllegalArgumentException("Operador ou missão inválidos");
+        LogAuditoriaDAO logDAO = new LogAuditoriaDAO();
+        logDAO.salvar(log);
+    }
+    
+    public void login(Operador operador, String senha, String tokenMFA) {
+        boolean senhaValida = operador.getSenhaHash().equals(senha);
+        boolean mfaValido = tokenMFA != null && !tokenMFA.isBlank();
+
+        if (senhaValida && mfaValido) {
+            registrarLog(operador.getId(), TipoAcao.LOGIN, "Login realizado com sucesso");
+        } else {
+            registrarLog(operador.getId(), TipoAcao.FALHA_SEGURANCA, "Falha no login");
+            throw new IllegalStateException("Credenciais inválidas");
         }
- 
-        operador.autorizarInicioMissao(missao);    
-        missao.iniciarMissao();   
+    }
+    
+    public void iniciarMissao(Operador operador, Missao missao) {
+        if (operador == null || missao == null) {
+            throw new IllegalArgumentException("Dados inválidos");
+        }
+
+        if (!operador.temPoderDeDecisao()) {
+            registrarLog(operador.getId(), TipoAcao.FALHA_SEGURANCA,
+                    "Tentativa de iniciar missão sem permissão");
+            throw new IllegalStateException("Sem permissão");
+        }
+
+        missao.definirOperadorResponsavel(operador.getId());
+        missao.iniciarMissao();
+        registrarLog(operador.getId(), TipoAcao.ALTERACAO_STATUS,
+                "Missão iniciada: " + missao.getId());
     }
 
+    public void abortarMissao(Operador operador, Missao missao, String motivo) {
+        if (operador == null || missao == null) {
+            throw new IllegalArgumentException("Dados inválidos");
+        }
+
+        missao.abortarMissao(motivo);
+        registrarLog(operador.getId(), TipoAcao.ALTERACAO_STATUS,
+                "Missão abortada: " + motivo);
+    }
+
+    public void finalizarMissao(Operador operador, Missao missao) {
+        if (operador == null || missao == null) {
+            throw new IllegalArgumentException("Dados inválidos");
+        }
+        missao.finalizarMissao();
+        registrarLog(operador.getId(), TipoAcao.ALTERACAO_STATUS,
+                "Missão finalizada: " + missao.getId());
+    }
+    
+    public void receberTelemetria(Drone drone, Telemetria t) {
+
+        if (drone == null || t == null) return;
+
+        registrarLog(drone.getId(), TipoAcao.ALTERACAO_STATUS,
+                "Telemetria recebida do drone " + drone.getId());
+    }
+    
+    public void enviarComando(Operador operador, UUID droneId, String comando) {
+
+        if (operador == null || droneId == null || comando == null) {
+            throw new IllegalArgumentException("Dados inválidos");
+            
+        }
+        
+        if (!operador.temPoderDeDecisao()) {
+            registrarLog(operador.getId(), TipoAcao.FALHA_SEGURANCA,
+                "Tentativa de envio de comando sem permissão");
+            throw new IllegalStateException("Sem permissão");
+        }
+
+        registrarLog(operador.getId(), TipoAcao.ENVIO_COMANDO,
+                "Comando enviado ao drone " + droneId + ": " + comando);
+    }
+    
     public void adicionarDroneAFrota(Drone drone) {
         if (drone == null) {
             throw new IllegalArgumentException("Drone inválido");
@@ -42,15 +116,6 @@ public class CentralDeControle {
         this.missoes.add(missao);
     }
 
-    
-    // Monitoramento de Drone Simplificado
-    public void monitorarDrone(Drone drone) {
-        if (drone == null) {
-            throw new IllegalArgumentException("Drone inválido");
-        }
-
-       // Implementação Futura
-    }
 
     // Getters
     public List<Drone> getFrota() {
