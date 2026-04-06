@@ -18,7 +18,7 @@
 
 A evolução da tecnologia de **veículos aéreos não tripulados (UAVs)**, popularmente conhecidos como **drones**, tem transformado profundamente diversas áreas estratégicas, especialmente no contexto **militar e de segurança**. Empresas especializadas em **sistemas autônomos** vêm investindo fortemente em soluções que combinam **inteligência artificial**, **sistemas embarcados** e **infraestrutura distribuída** para garantir operações **seguras, eficientes e confiáveis**.
 
-A empresa fictícia **Securus Dynamics** é uma multinacional dedicada ao desenvolvimento de **drones bélicos autônomos** utilizados em **missões táticas**, **reconhecimento de territórios hostis** e **operações de precisão**. Seu principal produto, o **Aquila-X**, consiste em uma frota de drones equipados com **sensores avançados**, **inteligência artificial** e **sistemas de navegação autônoma**.
+A empresa **Securus Dynamics** é uma multinacional dedicada ao desenvolvimento de **drones bélicos autônomos** utilizados em **missões táticas**, **reconhecimento de territórios hostis** e **operações de precisão**. Seu principal produto, o **Aquila-X**, consiste em uma frota de drones equipados com **sensores avançados**, **inteligência artificial** e **sistemas de navegação autônoma**.
 
 Entretanto, o sistema atual apresenta diversos **problemas estruturais**, incluindo:
 
