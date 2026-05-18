@@ -1,0 +1,291 @@
+@startuml DiagramaClasses_FalcaoSombrio
+
+skinparam backgroundColor       #FFFFFF
+skinparam defaultFontName       Segoe UI
+skinparam defaultFontSize       20
+skinparam classAttributeIconSize 0
+skinparam padding               5
+skinparam nodesep               55
+skinparam ranksep               50
+skinparam linetype              ortho
+
+skinparam class {
+    BackgroundColor             #FFFFFF
+    BorderColor                 #4F46E5
+    FontColor                   #1E1B4B
+
+    FontStyle                   bold
+    AttributeFontStyle          bold
+    StereotypeFontStyle         bold
+
+    HeaderBackgroundColor       #FFFFFF
+    AttributeFontColor          #111827
+    AttributeFontSize           15
+
+    StereotypeFontColor         #C7D2FE
+    StereotypeFontSize          14
+
+    ArrowColor                  #000000
+    ArrowFontColor              #000000
+    ArrowFontSize               14
+}
+
+skinparam note {
+    BackgroundColor             #FFFBEB
+    BorderColor                 #D97706
+    FontColor                   #78350F
+    FontSize                    18
+}
+
+hide empty members
+
+title
+    <b>Diagrama de Classes — Falcão Sombrio</b>
+    
+end title
+
+' ═══════════════════════════════════════════════════════════════
+'  ENUMS
+' ═══════════════════════════════════════════════════════════════
+
+enum NivelAcesso {
+    COMANDANTE
+    SOLDADO
+    --
+    - prioridade : int
+    - descricao  : String
+}
+
+enum StatusDrone {
+    IDLE
+    DECOLANDO
+    EM_MISSAO
+    RETORNANDO
+    ALERTA
+    MANUTENCAO
+    --
+    - codigo   : int
+    - descricao : String
+}
+
+enum StatusMissao {
+    AGUARDANDO
+    PREPARADA
+    EM_CURSO
+    SUCESSO
+    ABORTADA
+    FALHA
+    --
+    - codigo   : int
+    - descricao : String
+}
+
+enum StatusSensor {
+    OPERACIONAL
+    FALHA
+    MANUTENCAO
+}
+
+enum TipoAcao {
+    LOGIN
+    LOGOUT
+    ENVIO_COMANDO
+    ALTERACAO_STATUS
+    FALHA_SEGURANCA
+}
+
+enum TipoSensor {
+    LIDAR
+    CAMERA
+    GPS
+}
+
+' ═══════════════════════════════════════════════════════════════
+'  CLASSES DE MODELO
+' ═══════════════════════════════════════════════════════════════
+
+class CentralDeControle {
+    - frota               : List<Drone>
+    - missoes             : List<Missao>
+    - logs                : List<LogAuditoria>
+    - sistemaComunicacao  : SistemaComunicacao
+    ==
+    + CentralDeControle(sistemaComunicacao : SistemaComunicacao)
+    + enviarComando(operador : Operador, droneId : UUID, comando : String, assinatura : String) : void
+    + receberTelemetria(drone : Drone, t : Telemetria) : void
+    + adicionarDroneAFrota(drone : Drone) : void
+    + adicionarMissao(missao : Missao) : void
+    + sincronizarLogsMissao(missao : Missao) : void
+    - registrarLog(log : LogAuditoria) : void
+}
+
+class Drone {
+    - id          : UUID
+    - modelo      : String
+    - status      : StatusDrone
+    - bateria     : double
+    - localizacao : Coordenadas
+    - sensores    : List<Sensor>
+    ==
+    + Drone(modelo : String, localizacaoInicial : Coordenadas)
+    + Drone(id : UUID, modelo : String, localizacao : Coordenadas, status : StatusDrone, bateria : double)
+    + moverPara(destino : Coordenadas, consumo : double) : void
+    + adicionarSensor(sensor : Sensor) : void
+    + sincronizarSensores() : void
+    # entrarModoAlerta() : void
+    - validarOperacao(consumo : double) : void
+    - consumirBateria(consumo : double) : void
+}
+
+class Missao {
+    - id                    : UUID
+    - objetivo              : String
+    - status                : StatusMissao
+    - dronesIds             : Set<UUID>
+    - pontoEntrada          : Coordenadas
+    - raioOperacao          : double
+    - dataInicio            : Instant
+    - dataFim               : Instant
+    - motivoAborto          : String
+    - operadorResponsavelId : UUID
+    - logs                  : Set<LogAuditoria>
+    ==
+    + Missao(objetivo : String, pontoEntrada : Coordenadas, raioOperacao : double)
+    + isDroneAlocado(droneId : UUID) : boolean
+    + alocarDrone(droneId : UUID, operador : Operador) : void
+    + iniciarMissao(operador : Operador) : void
+    + abortarMissao(motivo : String, operador : Operador) : void
+    + finalizarMissao(operador : Operador) : void
+    + definirOperadorResponsavel(operadorId : UUID, operador : Operador) : void
+    - validarPermissao(operador : Operador) : void
+    - registrarLog(operador : Operador, tipo : TipoAcao, detalhes : String, droneId : UUID) : void
+}
+
+class Operador {
+    - id          : UUID
+    - nome        : String
+    - email       : String
+    - senhaHash   : String
+    - nivelAcesso : NivelAcesso
+    - mfaSecret   : String
+    ==
+    + Operador(nome : String, email : String, senhaHash : String, \nnivelAcesso : NivelAcesso)
+    + validarAcesso(senha : String, tokenMFA : String) : boolean
+    + temPoderDeDecisao() : boolean
+}
+
+abstract class Sensor {
+    - id     : UUID
+    - tipo   : TipoSensor
+    - status : StatusSensor
+    ==
+    # Sensor(tipo : TipoSensor)
+    + {abstract} coletarDados() : void
+    + verificarStatus() : void
+    + atualizarStatus(novoStatus : StatusSensor) : void
+    # gerarAlerta() : void
+}
+
+class Coordenadas <<final>> {
+    - latitude    : double
+    - longitude   : double
+    - altitude    : double
+    - {static} EARTH_RADIUS : double
+    - {static} EPSILON      : double
+    ==
+    + Coordenadas(latitude : double, longitude : double, altitude : double)
+    + isProximo(destino : Coordenadas, raioMetros : double) : boolean
+    + calcularDistancia(destino : Coordenadas) : double
+    + calcularDistancia2D(destino : Coordenadas) : double
+    + isIgual(outra : Coordenadas) : boolean
+    - validar(latitude : double, longitude : double) : void
+}
+
+class SistemaComunicacao {
+    - protocolo        : String
+    - conexaoAtiva     : boolean
+    - tentativasFalhas : int
+    - {static} LIMITE_TENTATIVAS : int
+    ==
+    + SistemaComunicacao(protocolo : String)
+    + enviarComandoSeguro(droneId : UUID, comando : String, assinatura : String) : boolean
+    + receberTelemetria(t : Telemetria) : boolean
+    + tentarReconexao() : void
+    - registrarFalha() : void
+    - validarAssinatura(assinatura : String) : boolean
+}
+
+class NavegacaoInteligente {
+    ==
+    + calcularRota(atual : Coordenadas, destino : Coordenadas) : String
+    + detectarAmeaca(bateria : double) : boolean
+    + desviarObstaculo(drone : Drone) : void
+}
+
+class Telemetria {
+    - id         : UUID
+    - droneId    : UUID
+    - latitude   : double
+    - longitude  : double
+    - altitude   : double
+    - velocidade : double
+    - timestamp  : Instant
+    ==
+    + Telemetria(droneId : UUID, latitude : double, longitude : double, altitude : \ndouble, velocidade : double, statusDrone : String, origemDado : String, \ntimestamp : Instant)
+}
+
+class LogAuditoria {
+    - id        : UUID
+    - usuarioId : UUID
+    - acao      : TipoAcao
+    - detalhes  : String
+    - timestamp : Instant
+    - missaoId  : UUID
+    - droneId   : UUID
+    ==
+    + LogAuditoria(usuarioId : UUID, acao : TipoAcao, detalhes : String)
+    + LogAuditoria(usuarioId : UUID, acao : TipoAcao, detalhes : String, missaoId : UUID, \ndroneId : UUID)
+}
+
+' ═══════════════════════════════════════════════════════════════
+'  RELACIONAMENTOS
+' ═══════════════════════════════════════════════════════════════
+
+' CentralDeControle
+CentralDeControle "1" *--> "0..*" Drone          : frota
+CentralDeControle "1" *--> "0..*" Missao         : missoes
+CentralDeControle "1" *--> "0..*" LogAuditoria   : logs
+CentralDeControle "1" o--> "1"   SistemaComunicacao
+CentralDeControle ..>             Operador        : <<usa>>
+CentralDeControle ..>             Telemetria      : <<recebe>>
+
+' Drone
+Drone "1" *--> "0..*" Sensor      : sensores
+Drone "1" o--> "1"   Coordenadas  : localizacao
+Drone ..>             StatusDrone  : <<usa>>
+
+' Missao
+Missao "1" *--> "0..*" LogAuditoria : logs
+Missao "1" o--> "1"   Coordenadas   : pontoEntrada
+Missao ..>             StatusMissao  : <<usa>>
+Missao ..>             TipoAcao      : <<usa>>
+Missao ..>             Operador      : <<valida>>
+
+' Operador
+Operador ..> NivelAcesso : <<usa>>
+
+' Sensor
+Sensor ..> TipoSensor  : <<usa>>
+Sensor ..> StatusSensor : <<usa>>
+
+' LogAuditoria
+LogAuditoria ..> TipoAcao : <<usa>>
+
+' SistemaComunicacao
+SistemaComunicacao ..> Telemetria : <<valida>>
+
+' NavegacaoInteligente
+NavegacaoInteligente ..> Coordenadas : <<usa>>
+NavegacaoInteligente ..> Drone       : <<usa>>
+
+@enduml
