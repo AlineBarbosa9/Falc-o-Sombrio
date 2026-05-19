@@ -1,8 +1,8 @@
 package model;
 
 import java.util.UUID;
-import enums.NivelAcesso;
 
+import enums.NivelAcesso;
 
 public class Operador {
 
@@ -13,81 +13,65 @@ public class Operador {
     private NivelAcesso nivelAcesso;
     private String mfaSecret;
 
-    // Construtor Público
     public Operador(String nome, String email, String senhaHash, NivelAcesso nivelAcesso) {
 
-        if (nome == null || nome.isBlank()) {
-            throw new IllegalArgumentException("Nome inválido");
-        }
-
-        if (email == null || email.isBlank() || !email.contains("@")) {
-            throw new IllegalArgumentException("Email inválido");
-        }
-
-        if (senhaHash == null || senhaHash.isBlank()) {
-            throw new IllegalArgumentException("Senha inválida");
-        }
-
-        if (nivelAcesso == null) {
-            throw new IllegalArgumentException("Nível de acesso inválido");
-        }
+        if (nome == null || nome.isBlank()) throw new IllegalArgumentException("Nome inválido");
+        if (email == null || email.isBlank() || !email.contains("@")) throw new IllegalArgumentException("Email inválido");
+        if (senhaHash == null || senhaHash.isBlank()) throw new IllegalArgumentException("Senha inválida");
+        if (nivelAcesso == null) throw new IllegalArgumentException("Nível inválido");
 
         this.id = UUID.randomUUID();
         this.nome = nome;
-        this.email = email;
+        this.setEmail(email);
         this.senhaHash = senhaHash;
         this.nivelAcesso = nivelAcesso;
     }
 
-    // Validação de Acesso Simplificado
     public boolean validarAcesso(String senha, String tokenMFA) {
-        boolean senhaValida = this.senhaHash.equals(senha);
+
+        boolean senhaValida = senha != null && senhaHash.equals(senha);
         boolean mfaValido = tokenMFA != null && !tokenMFA.isBlank();
 
         return senhaValida && mfaValido;
     }
 
     public boolean temPoderDeDecisao() {
-        return this.nivelAcesso == NivelAcesso.COMANDANTE;
-    }  
-    
-    // Getters
-    public UUID getId() { 
-    	return id; 
-    }
-    public String getNome() { 
-    	return nome; 
-    }
-    public String getEmail() { 
-    	return email; 
-    }
-    public NivelAcesso getNivelAcesso() { 
-    	return nivelAcesso; 
-    }
-    public String getSenhaHash() {
-        return senhaHash;
-    }
-    public String getMfaSecret() {
-        return mfaSecret;
+        return nivelAcesso == NivelAcesso.COMANDANTE;
     }
 
-    // Setters
-    public void setNome(String nome) {
-        if (nome == null || nome.isBlank()) {
-            throw new IllegalArgumentException("Nome inválido");
-        }
-        this.nome = nome;
+    public UUID getId() {
+        return id;
     }
-    public void setEmail(String email) {
-        if (email == null || email.isBlank() || !email.contains("@")) {
-            throw new IllegalArgumentException("Email inválido");
-        }
-        this.email = email;
+
+    public String getNome() {
+        return nome;
     }
-    public void setNivelAcesso(NivelAcesso nivelAcesso) {
-        if (nivelAcesso == null) {
-            throw new IllegalArgumentException("Nível inválido");
-        }
-        this.nivelAcesso = nivelAcesso;
+
+    public NivelAcesso getNivelAcesso() {
+        return nivelAcesso;
     }
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getMfaSecret() {
+		return mfaSecret;
+	}
+
+	public void setMfaSecret(String mfaSecret) {
+		this.mfaSecret = mfaSecret;
+	}
+
+	public String getSenhaHash() {
+		return senhaHash;
+	}
+
+	public void setSenhaHash(String senhaHash) {
+		this.senhaHash = senhaHash;
+	}
 }
