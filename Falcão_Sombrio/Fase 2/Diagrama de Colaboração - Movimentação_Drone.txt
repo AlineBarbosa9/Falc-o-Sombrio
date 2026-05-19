@@ -1,0 +1,82 @@
+@startuml Colaboracao_04_MovimentacaoDrone
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 8
+skinparam nodesep 60
+skinparam ranksep 50
+
+skinparam rectangle {
+    BackgroundColor #EEF2FF
+    BorderColor     #4F46E5
+    FontColor       #1E1B4B
+    FontStyle       bold
+    RoundCorner     12
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #000000
+    FontSize        10
+}
+
+skinparam arrow {
+    Color     #000000
+    FontColor #000000
+    FontStyle       bold
+    FontSize  11
+}
+
+title <b>Colaboração 4 — Movimentação do Drone e Sincronização de Sensores</b>\n
+
+rectangle "central : CentralDeControle" as CDC
+rectangle "nav : NavegacaoInteligente\n—————————————\n<i>stateless</i>" as NAV
+rectangle "drone : Drone\n—————————————\nstatus = EM_MISSAO\nbateria = 60.0\nlocalizacao = atual\nsensores = [s1, s2, s3]" as DRONE
+rectangle "destino : Coordenadas\n—————————————\nlatitude, longitude, altitude" as DEST
+rectangle "sensor : Sensor\n—————————————\ntipo = LIDAR | CAMERA | GPS\nstatus = OPERACIONAL" as SEN
+
+CDC  --> NAV   : 1. calcularRota(atual, destino)
+NAV  --> DEST  : 1.1. [atual != null && destino != null]
+NAV  --> CDC   : 1.2. return: String
+
+CDC  --> NAV   : 2. detectarAmeaca(drone.getBateria())
+NAV  --> NAV   : 2.1. bateria < 15.0
+NAV  --> CDC   : 2.2. return: boolean
+
+CDC  --> DRONE : 3. moverPara(destino, consumo)
+DRONE --> DRONE : 3.1. validarOperacao(consumo)
+DRONE --> DEST  : 3.3. localizacao = destino
+DRONE --> DRONE : 3.4. consumirBateria(consumo)\nbateria -= consumo
+DRONE --> DRONE : 3.5. [bateria<=15] entrarModoAlerta()
+
+CDC  --> DRONE : 4. sincronizarSensores()
+DRONE --> SEN  : 4.1. coletarDados()  «abstract»
+DRONE --> SEN  : 4.2. verificarStatus()
+SEN  --> SEN   : 4.2.1. [status==FALHA] gerarAlerta()
+
+CDC  --> NAV   : 5. desviarObstaculo(drone)
+NAV  --> DRONE : 5.1. getLocalizacao()
+NAV  --> NAV   : 5.2. [localizacao != null] calcula desvio
+
+
+
+note bottom of SEN
+    <b>coletarDados()</b> é abstrato.
+    Subclasses: LIDAR, CAMERA, GPS.
+    gerarAlerta() em FALHA
+    pode acionar entrarModoAlerta()
+    no Drone (se falha crítica).
+end note
+
+note bottom of DRONE
+    <b>validarOperacao()</b> aplica
+    duas guardas antes de mover:
+    • bateria <= 15 → ALERTA
+    • (bateria - consumo) < 5 → ALERTA
+    Ambas lançam IllegalStateException.
+end note
+
+@enduml
