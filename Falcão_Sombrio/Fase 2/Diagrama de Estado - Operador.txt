@@ -1,0 +1,148 @@
+@startuml Estados_CicloOperador
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam defaultFontStyle bold
+
+skinparam state {
+    BackgroundColor                 #EEF2FF
+    BorderColor                     #4F46E5
+    FontColor                       #1E1B4B
+    FontStyle                       bold
+    ArrowColor                      #374151
+    ArrowFontColor                  #1D4ED8
+    ArrowFontSize                   10
+    ArrowFontStyle                  bold
+
+    BackgroundColor<<comandante>>   #DCFCE7
+    BorderColor<<comandante>>       #16A34A
+    FontColor<<comandante>>         #14532D
+
+    BackgroundColor<<soldado>>      #FEF9C3
+    BorderColor<<soldado>>          #CA8A04
+    FontColor<<soldado>>            #713F12
+
+    BackgroundColor<<bloqueado>>    #FEE2E2
+    BorderColor<<bloqueado>>        #DC2626
+    FontColor<<bloqueado>>          #7F1D1D
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #78350F
+    FontSize        11
+    FontStyle       bold
+}
+
+title
+    <b>Diagrama De Estados — Ciclo Do Operador</b>
+end title
+
+[*] --> NAO_AUTENTICADO : <b>New Operador()\n/ Não Autenticado</b>
+
+state NAO_AUTENTICADO {
+
+    [*] --> Aguardando_Credenciais
+
+    Aguardando_Credenciais : <b>Do / Aguarda Senha E MFA</b>
+}
+
+state AUTENTICADO_SOLDADO <<soldado>> {
+
+    [*] --> Acesso_Basico
+
+    Acesso_Basico : <b>Do / Monitora Telemetria</b>
+    Acesso_Basico : <b>Do / Visualiza Drones</b>
+    Acesso_Basico : <b>Do / Consulta Logs</b>
+    Acesso_Basico : <b>Do / Sem Poder De Decisão</b>
+}
+
+state AUTENTICADO_COMANDANTE <<comandante>> {
+
+    [*] --> Acesso_Total
+
+    Acesso_Total : <b>Do / Controle Completo</b>
+    Acesso_Total : <b>Do / EnviarComando()</b>
+    Acesso_Total : <b>Do / IniciarMissao()</b>
+    Acesso_Total : <b>Do / AbortarMissao()</b>
+    Acesso_Total : <b>Do / FinalizarMissao()</b>
+    Acesso_Total : <b>Do / Tem Poder De Decisão</b>
+}
+
+state ACESSO_NEGADO <<bloqueado>> {
+
+    [*] --> Credencial_Invalida
+
+    Credencial_Invalida : <b>Entry / Log FALHA_SEGURANCA</b>
+    Credencial_Invalida : <b>Do / Bloqueia Operações</b>
+}
+
+state OPERACAO_NEGADA <<bloqueado>> {
+
+    [*] --> Tentativa_Bloqueada
+
+    Tentativa_Bloqueada : <b>Entry / Log FALHA_SEGURANCA</b>
+    Tentativa_Bloqueada : <b>Entry / Lança SecurityException</b>
+    Tentativa_Bloqueada : <b>Do / Operação Não Executada</b>
+}
+
+' ── Autenticação ───────────────────────────────────────────────
+
+NAO_AUTENTICADO --> AUTENTICADO_SOLDADO : <b>ValidarAcesso()\n[SOLDADO]</b>
+
+NAO_AUTENTICADO --> AUTENTICADO_COMANDANTE : <b>ValidarAcesso()\n[COMANDANTE]</b>
+
+NAO_AUTENTICADO --> ACESSO_NEGADO : <b>Credenciais Inválidas</b>
+
+' ── Operação Restrita ──────────────────────────────────────────
+
+AUTENTICADO_SOLDADO --> OPERACAO_NEGADA : <b>Tenta Operação Restrita</b>
+
+' ── Retornos ───────────────────────────────────────────────────
+
+ACESSO_NEGADO --> NAO_AUTENTICADO : <b>Nova Tentativa</b>
+
+OPERACAO_NEGADA --> AUTENTICADO_SOLDADO : <b>Retorna Ao Estado Anterior</b>
+
+AUTENTICADO_SOLDADO --> NAO_AUTENTICADO : <b>Logout()</b>
+
+AUTENTICADO_COMANDANTE --> NAO_AUTENTICADO : <b>Logout()</b>
+
+note right of AUTENTICADO_COMANDANTE
+    <b>TemPoderDeDecisao() == True
+    
+    • NivelAcesso = COMANDANTE
+    • Prioridade = 1
+    • Controle Total Da Missão</b>
+end note
+
+note right of AUTENTICADO_SOLDADO
+    <b>TemPoderDeDecisao() == False
+    
+    • NivelAcesso = SOLDADO
+    • Prioridade = 2
+    • Monitoramento E Telemetria</b>
+end note
+
+note right of ACESSO_NEGADO
+    <b>Ocorre Quando:
+    
+    • Senha Inválida
+    • MFA Nulo Ou Vazio
+    
+    Operador Continua
+    Não Autenticado.</b>
+end note
+
+note right of OPERACAO_NEGADA
+    <b>Operações Restritas
+    Validam Permissão Antes
+    Da Execução.
+    
+    SOLDADO Não Pode
+    Executar Comandos Críticos.</b>
+end note
+
+@enduml
