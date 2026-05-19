@@ -1,0 +1,157 @@
+@startuml Estados_Drone
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam defaultFontStyle bold
+
+skinparam state {
+    BackgroundColor               #EEF2FF
+    BorderColor                   #4F46E5
+    FontColor                     #1E1B4B
+    FontStyle                     bold
+    ArrowColor                    #374151
+    ArrowFontColor                #000000
+    ArrowFontSize                 14
+    ArrowFontStyle                bold
+
+    BackgroundColor<<alerta>>     #FEF9C3
+    BorderColor<<alerta>>         #CA8A04
+    FontColor<<alerta>>           #713F12
+
+    BackgroundColor<<manutencao>> #F3F4F6
+    BorderColor<<manutencao>>     #6B7280
+    FontColor<<manutencao>>       #1F2937
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #78350F
+    FontSize        12
+    FontStyle       bold
+}
+
+title
+    <b>Diagrama De Estados — Drone</b>
+end title
+
+[*] --> IDLE : <b>New Drone(Modelo, Localizacao)\n/ Status = IDLE, Bateria = 100%</b>
+
+state IDLE {
+
+    [*] --> Aguardando
+
+    Aguardando : <b>Entry / Aceita Comandos Da CentralDeControle</b>
+    Aguardando : <b>Do / Monitora Nível De Bateria</b>
+}
+
+state DECOLANDO {
+
+    [*] --> Iniciando_Propulsao
+
+    Iniciando_Propulsao : <b>Entry / Verifica Sensores (SincronizarSensores)</b>
+    Iniciando_Propulsao : <b>Do / Eleva Altitude Progressivamente</b>
+}
+
+state EM_MISSAO {
+
+    [*] --> Executando_Rota
+
+    state Executando_Rota {
+
+        [*] --> Navegando
+
+        Navegando : <b>Do / MoverPara(Destino, Consumo)</b>
+        Navegando : <b>Do / SincronizarSensores()</b>
+
+        Navegando --> Monitorando_Bateria : <b>Bateria Consumida</b>
+
+        Monitorando_Bateria : <b>Do / ConsumirBateria(Consumo)</b>
+        Monitorando_Bateria : <b>Do / Valida Reserva De Segurança (5%)</b>
+
+        Monitorando_Bateria --> Navegando : <b>[Bateria > 15%]</b>
+    }
+}
+
+state RETORNANDO {
+
+    [*] --> Retorno_Base
+
+    Retorno_Base : <b>Entry / Calcula Rota De Retorno À Base</b>
+    Retorno_Base : <b>Do / MoverPara(Base, Consumo)</b>
+}
+
+state ALERTA <<alerta>> {
+
+    [*] --> Modo_Alerta
+
+    Modo_Alerta : <b>Entry / EntrarModoAlerta()</b>
+    Modo_Alerta : <b>Do / Registra Falha Crítica No Log</b>
+    Modo_Alerta : <b>Do / Bloqueia Recebimento De Novos Comandos</b>
+}
+
+state MANUTENCAO <<manutencao>> {
+
+    [*] --> Em_Manutencao
+
+    Em_Manutencao : <b>Entry / Drone Indisponível Para Operações</b>
+    Em_Manutencao : <b>Do / Aguarda Liberação Pela Equipe Técnica</b>
+}
+
+' ── Fluxo Principal ────────────────────────────────────────────
+
+IDLE --> DECOLANDO : <b>ComandoDecolar()\n[Operador.TemPoderDeDecisao() == True]</b>
+
+DECOLANDO --> EM_MISSAO : <b>AltitudeAlcancada()\n[Todos Os Sensores OPERACIONAIS]</b>
+
+EM_MISSAO --> RETORNANDO : <b>Missao.FinalizarMissao()\n/ Define Rota De Retorno</b>
+
+RETORNANDO --> IDLE : <b>BaseAlcancada()\n/ Bateria Recarregada, Status = IDLE</b>
+
+' ── Transições Para ALERTA ─────────────────────────────────────
+
+IDLE --> ALERTA : <b>[Bateria <= 15%]\n/ EntrarModoAlerta()</b>
+
+DECOLANDO --> ALERTA : <b>Falha Crítica De Sensor\n/ EntrarModoAlerta()</b>
+
+EM_MISSAO --> ALERTA : <b>[Bateria <= 15%] Ou\n[(Bateria - Consumo) < 5%]\n/ EntrarModoAlerta()</b>
+
+RETORNANDO --> ALERTA : <b>[Bateria <= 15%]\n/ EntrarModoAlerta()</b>
+
+' ── Saídas Do ALERTA ───────────────────────────────────────────
+
+ALERTA --> RETORNANDO : <b>[Bateria Parcialmente Restaurada\nE Bateria > 15%]</b>
+
+ALERTA --> MANUTENCAO : <b>[Falha Não Recuperável]\n/ Equipe Técnica Acionada</b>
+
+' ── Manutenção ─────────────────────────────────────────────────
+
+EM_MISSAO --> MANUTENCAO : <b>Falha Crítica De Hardware</b>
+
+MANUTENCAO --> IDLE : <b>Manutencao Concluída\n/ Bateria = 100%, Status = IDLE</b>
+
+note right of IDLE
+    <b>Estado Inicial Após Instanciação.
+    Drone Aguarda Comandos Com
+    Bateria = 100%.</b>
+end note
+
+note right of ALERTA
+    <b>Acionado Por EntrarModoAlerta()
+
+    A Partir De Qualquer Estado Quando:
+
+    • Bateria <= 15%
+    • (Bateria - Consumo) < 5%
+    • Falha Crítica De Sensor</b>
+end note
+
+note bottom of EM_MISSAO
+    <b>ValidarOperacao(Consumo) É Chamado Antes De
+    Cada Movimentação. Se A Reserva De Segurança
+    (5%) Não Puder Ser Mantida, Lança
+    IllegalStateException E Força ALERTA.</b>
+end note
+
+@enduml
