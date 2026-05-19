@@ -1,0 +1,165 @@
+@startuml Estados_Missao
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam defaultFontStyle bold
+
+skinparam state {
+    BackgroundColor               #EEF2FF
+    BorderColor                   #4F46E5
+    FontColor                     #1E1B4B
+    FontStyle                     bold
+    ArrowColor                    #374151
+    ArrowFontColor                #1D4ED8
+    ArrowFontSize                 10
+    ArrowFontStyle                bold
+
+    BackgroundColor<<sucesso>>    #DCFCE7
+    BorderColor<<sucesso>>        #16A34A
+    FontColor<<sucesso>>          #14532D
+
+    BackgroundColor<<abortada>>   #FEE2E2
+    BorderColor<<abortada>>       #DC2626
+    FontColor<<abortada>>         #7F1D1D
+
+    BackgroundColor<<falha>>      #FEE2E2
+    BorderColor<<falha>>          #DC2626
+    FontColor<<falha>>            #7F1D1D
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #78350F
+    FontSize        12
+    FontStyle       bold
+}
+
+title
+    <b>Diagrama De Estados — Missao</b>
+end title
+
+[*] --> AGUARDANDO : <b>New Missao()\nStatus = AGUARDANDO</b>
+
+state AGUARDANDO {
+
+    [*] --> Sem_Drones
+
+    Sem_Drones : <b>Do / Aceita AlocarDrone()</b>
+
+    Sem_Drones --> Com_Drones : <b>AlocarDrone()\n[COMANDANTE]</b>
+
+    Com_Drones : <b>Do / Aceita Mais Drones</b>
+
+    Com_Drones --> Pronta : <b>DefinirOperadorResponsavel()</b>
+
+    Pronta : <b>Do / Pronta Para Início</b>
+}
+
+state PREPARADA {
+
+    [*] --> Checagem_Pre_Voo
+
+    Checagem_Pre_Voo : <b>Do / Valida Drones</b>
+    Checagem_Pre_Voo : <b>Do / Valida Operador</b>
+    Checagem_Pre_Voo : <b>Do / Aguarda Início</b>
+}
+
+state EM_CURSO {
+
+    [*] --> Operacao_Ativa
+
+    Operacao_Ativa : <b>Entry / DataInicio = Instant.Now()</b>
+    Operacao_Ativa : <b>Do / Executa Rotas</b>
+    Operacao_Ativa : <b>Do / Monitora Telemetria</b>
+    Operacao_Ativa : <b>Do / Registra Logs</b>
+}
+
+state SUCESSO <<sucesso>> {
+
+    [*] --> Missao_Concluida
+
+    Missao_Concluida : <b>Entry / DataFim = Instant.Now()</b>
+    Missao_Concluida : <b>Entry / Log ALTERACAO_STATUS</b>
+    Missao_Concluida : <b>Do / Objetivo Concluído</b>
+}
+
+state ABORTADA <<abortada>> {
+
+    [*] --> Aborto_Registrado
+
+    Aborto_Registrado : <b>Entry / DataFim = Instant.Now()</b>
+    Aborto_Registrado : <b>Entry / Motivo Registrado</b>
+    Aborto_Registrado : <b>Entry / Log ALTERACAO_STATUS</b>
+    Aborto_Registrado : <b>Do / Missão Cancelada</b>
+}
+
+state FALHA <<falha>> {
+
+    [*] --> Falha_Registrada
+
+    Falha_Registrada : <b>Entry / DataFim = Instant.Now()</b>
+    Falha_Registrada : <b>Entry / Log ALTERACAO_STATUS</b>
+    Falha_Registrada : <b>Do / Objetivo Não Concluído</b>
+}
+
+' ── Fluxo Principal ────────────────────────────────────────────
+
+AGUARDANDO --> PREPARADA : <b>[Drones E Operador Definidos]</b>
+
+PREPARADA --> EM_CURSO : <b>IniciarMissao()\n[COMANDANTE]</b>
+
+' ── Saídas De EM_CURSO ─────────────────────────────────────────
+
+EM_CURSO --> SUCESSO : <b>FinalizarMissao()\n[COMANDANTE]</b>
+
+EM_CURSO --> ABORTADA : <b>AbortarMissao()\n[Motivo Válido]</b>
+
+EM_CURSO --> FALHA : <b>Falha Crítica\nOu Perda Total</b>
+
+' ── Estados Terminais ──────────────────────────────────────────
+
+SUCESSO --> [*]
+ABORTADA --> [*]
+FALHA --> [*]
+
+note right of AGUARDANDO
+    <b>Guardas De AlocarDrone():
+    
+    • Operador Deve Ser COMANDANTE
+    • Drone Não Pode Ser Duplicado
+    
+    Violações → FALHA_SEGURANCA
+    + IllegalStateException</b>
+end note
+
+note right of PREPARADA
+    <b>Pré-Requisitos:
+    
+    • Drones Definidos
+    • Operador Responsável Definido</b>
+end note
+
+note bottom of EM_CURSO
+    <b>Único Estado Que Permite
+    Transição Para Estados Terminais.
+    
+    Operações São synchronized.</b>
+end note
+
+note right of SUCESSO
+    <b>Estado Terminal.
+    
+    Não Possui
+    Transições De Saída.</b>
+end note
+
+note right of ABORTADA
+    <b>MotivoAborto É Obrigatório.
+    
+    Valores Nulos Geram
+    IllegalArgumentException.</b>
+end note
+
+@enduml
