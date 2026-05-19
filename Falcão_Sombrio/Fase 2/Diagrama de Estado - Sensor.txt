@@ -1,0 +1,121 @@
+@startuml Estados_Sensor
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam defaultFontStyle bold
+
+skinparam state {
+    BackgroundColor               #EEF2FF
+    BorderColor                   #4F46E5
+    FontColor                     #1E1B4B
+    FontStyle                     bold
+    ArrowColor                    #374151
+    ArrowFontColor                #1D4ED8
+    ArrowFontSize                 10
+    ArrowFontStyle                bold
+
+    BackgroundColor<<falha>>      #FEF9C3
+    BorderColor<<falha>>          #CA8A04
+    FontColor<<falha>>            #713F12
+
+    BackgroundColor<<manutencao>> #F3F4F6
+    BorderColor<<manutencao>>     #6B7280
+    FontColor<<manutencao>>       #1F2937
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #78350F
+    FontSize        11
+    FontStyle       bold
+}
+
+title
+    <b>Diagrama De Estados — Sensor</b>
+end title
+
+[*] --> OPERACIONAL : <b>New Sensor(Tipo)\n/ Status = OPERACIONAL</b>
+
+state OPERACIONAL {
+
+    [*] --> Coletando
+
+    Coletando : <b>Do / ColetarDados()</b>
+    Coletando : <b>Do / VerificarStatus()</b>
+    Coletando : <b>Do / Enviar Dados Ao Drone</b>
+
+    Coletando --> Coletando : <b>SincronizarSensores()\n[OPERACIONAL]</b>
+}
+
+state FALHA <<falha>> {
+
+    [*] --> Falha_Detectada
+
+    Falha_Detectada : <b>Entry / GerarAlerta()</b>
+    Falha_Detectada : <b>Do / Bloqueia Coleta</b>
+    Falha_Detectada : <b>Do / Notifica Drone</b>
+    Falha_Detectada : <b>Do / Pode Acionar Alerta</b>
+}
+
+state MANUTENCAO <<manutencao>> {
+
+    [*] --> Aguardando_Reparo
+
+    Aguardando_Reparo : <b>Entry / Sensor Indisponível</b>
+    Aguardando_Reparo : <b>Do / Aguarda Reparo</b>
+    Aguardando_Reparo : <b>Do / Coleta Bloqueada</b>
+}
+
+' ── Transições ─────────────────────────────────────────────────
+
+OPERACIONAL --> FALHA : <b>AtualizarStatus(FALHA)\nOu Erro Interno</b>
+
+FALHA --> OPERACIONAL : <b>Falha Resolvida</b>
+
+FALHA --> MANUTENCAO : <b>Falha Não Recuperável</b>
+
+MANUTENCAO --> OPERACIONAL : <b>Reparo Concluído</b>
+
+note right of OPERACIONAL
+    <b>ColetarDados() É Abstrato.
+    
+    Implementações:
+    
+    • LIDAR
+    • CAMERA
+    • GPS
+    
+    Chamado Via
+    SincronizarSensores().</b>
+end note
+
+note right of FALHA
+    <b>GerarAlerta() É Executado
+    Na Entry Do Estado.
+    
+    O Drone Monitora Sensores
+    Via VerificarStatus()
+    E Pode Entrar Em ALERTA.</b>
+end note
+
+note right of MANUTENCAO
+    <b>AtualizarStatus() É O
+    Único Método De Transição.
+    
+    NovoStatus Null →
+    IllegalArgumentException.</b>
+end note
+
+note bottom of FALHA
+    <b>FALHA → OPERACIONAL
+    
+    Recuperação Automática.
+    
+    FALHA → MANUTENCAO
+    
+    Exige Intervenção Física.</b>
+end note
+
+@enduml
