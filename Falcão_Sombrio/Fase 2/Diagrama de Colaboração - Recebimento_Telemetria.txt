@@ -1,0 +1,62 @@
+@startuml Colaboracao_02_ReceberTelemetria
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 8
+skinparam nodesep 60
+skinparam ranksep 50
+
+skinparam rectangle {
+    BackgroundColor #EEF2FF
+    BorderColor     #4F46E5
+    FontColor       #1E1B4B
+    FontStyle       bold
+    RoundCorner     12
+}
+
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor     #D97706
+    FontColor       #000000
+    FontSize        10
+}
+
+skinparam arrow {
+    Color     #374151
+    FontColor #000000
+    FontStyle bold
+    FontSize  11
+}
+
+title <b>Colaboração 2 — Recebimento de Telemetria</b>\n
+
+rectangle "drone : Drone\n—————————————\nid = uuid\nstatus = EM_MISSAO\nbateria = 60.0" as DRONE
+rectangle "t : Telemetria\n—————————————\ndroneId = drone.id\nlatitude, longitude\naltitude, velocidade\ntimestamp = Instant.now()" as TEL
+rectangle "central : CentralDeControle\n—————————————\nlogs" as CDC
+rectangle "sc : SistemaComunicacao\n—————————————\nconexaoAtiva = true" as SC
+rectangle "log : LogAuditoria\n—————————————\nacao = ALTERACAO_STATUS\nusuarioId = drone.id\ndroneId = drone.id" as LOG
+
+DRONE --> TEL  : 1. new Telemetria(droneId, lat, lon,\nalt, vel, status, origem, timestamp)
+DRONE --> CDC  : 2. receberTelemetria(drone, t)
+CDC   --> SC   : 3. receberTelemetria(t)
+SC    --> SC   : 3.1. [conexaoAtiva && t != null] → true
+CDC   --> LOG  : 4. new LogAuditoria(drone.getId(),\nALTERACAO_STATUS,\n"Telemetria recebida",\nnull, drone.getId())
+CDC   --> CDC  : 5. registrarLog(log)
+
+note right of SC
+    receberTelemetria() apenas
+    valida o canal (boolean).
+    Não persiste dados —
+    isso é papel do LogAuditoria.
+end note
+
+note bottom of LOG
+    drone.getId() serve como
+    <b>usuarioId</b> e <b>droneId</b>
+    simultaneamente, rastreando
+    a origem da telemetria.
+end note
+
+@enduml
