@@ -1,0 +1,170 @@
+@startuml Sequencia_FalcaoSombrio
+
+skinparam backgroundColor       #FFFFFF
+skinparam defaultFontName       Arial
+skinparam defaultFontSize       11
+
+skinparam sequence {
+    ArrowColor                  #374151
+    ArrowFontColor              #000000
+    ArrowFontSize               10
+    ArrowFontStyle              bold
+
+    ActorBorderColor            #000000
+    ActorBackgroundColor        #EEF2FF
+    ActorFontColor              #1E1B4B
+    ActorFontStyle              bold
+    ActorFontSize               11
+
+    LifeLineBorderColor         #C4B5FD
+    LifeLineBorderThickness     1
+    LifeLineBackgroundColor     #FAFAFA
+
+    ParticipantBorderColor      #000000
+    ParticipantBackgroundColor  #EEF2FF
+    ParticipantFontColor        #1E1B4B
+    ParticipantFontStyle        bold
+    ParticipantFontSize         11
+
+    DividerBackgroundColor      #E0E7FF
+    DividerBorderColor          #4F46E5
+    DividerBorderThickness      1
+    DividerFontColor            #000000
+    DividerFontStyle            bold
+    DividerFontSize             12
+
+    NoteBackgroundColor         #FFFBEB
+    NoteBorderColor             #D97706
+    NoteFontColor               #000000
+    NoteFontSize                10
+
+    GroupBackgroundColor        #F0FDF4
+    GroupBorderColor            #000000
+    GroupFontColor              #000000
+    GroupHeaderFontColor        #14532D
+    GroupFontStyle              bold
+}
+
+title
+    <b>Diagrama de Sequência — Falcão Sombrio</b>
+    
+end title
+
+actor       "Operador"           as OP
+participant "CentralDeControle"  as CDC
+participant "Missao"             as MIS
+participant "Drone"              as DRONE
+participant "SistemaComunicacao" as SC
+participant "NavegacaoInteligente" as NAV
+participant "Sensor"             as SEN
+participant "LogAuditoria"       as LOG
+
+== 1. Autenticação ==
+
+OP  ->  OP  : validarAcesso(senha, tokenMFA)
+note right : senhaHash.equals(senha)\n&& tokenMFA != null && !isBlank()
+OP  ->  OP  : temPoderDeDecisao()\nnivel == COMANDANTE → true
+
+== 2. Configuração da Missão ==
+
+OP  ->  MIS  : new Missao(objetivo, coordenadas, raio)
+note right : status = AGUARDANDO\ndronesIds = vazio
+
+OP  ->  MIS  : alocarDrone(droneId, op)
+MIS ->  MIS  : validarPermissao(op)
+MIS ->  MIS  : dronesIds.add(droneId)
+MIS ->  LOG  : new LogAuditoria(ENVIO_COMANDO)
+
+OP  ->  MIS  : definirOperadorResponsavel(opId, op)
+MIS ->  MIS  : operadorResponsavelId = opId
+MIS ->  LOG  : new LogAuditoria(ALTERACAO_STATUS)
+
+OP  ->  CDC  : adicionarMissao(missao)
+
+== 3. Envio de Comando ==
+
+OP  ->  CDC  : enviarComando(op, droneId, cmd, assinatura)
+CDC ->  OP   : temPoderDeDecisao()
+
+alt SOLDADO
+    CDC ->  LOG : new LogAuditoria(FALHA_SEGURANCA)
+    CDC -->  OP : throw IllegalStateException
+end
+
+CDC ->  SC  : enviarComandoSeguro(droneId, cmd, assinatura)
+SC  ->  SC  : validarAssinatura(assinatura)
+
+alt conexaoAtiva == false
+    SC  ->  SC : registrarFalha()
+    SC  ->  SC : [tentativas >= 3] tentarReconexao()
+end
+
+SC  --> CDC : true
+CDC ->  LOG : new LogAuditoria(ENVIO_COMANDO)
+
+== 4. Início da Missão ==
+
+OP  ->  MIS  : iniciarMissao(op)
+MIS ->  MIS  : validarPermissao(op)
+MIS ->  MIS  : status = EM_CURSO\ndataInicio = Instant.now()
+MIS ->  LOG  : new LogAuditoria(ALTERACAO_STATUS)
+
+== 5. Operação do Drone ==
+
+CDC ->  NAV  : calcularRota(atual, destino)
+NAV --> CDC  : rota : String
+
+CDC ->  NAV  : detectarAmeaca(drone.getBateria())
+NAV --> CDC  : boolean
+
+alt ameaca == false
+    CDC ->  DRONE : moverPara(destino, consumo)
+    DRONE -> DRONE : validarOperacao(consumo)
+
+    alt bateria <= 15% ou reserva < 5%
+        DRONE -> DRONE : entrarModoAlerta()\nstatus = ALERTA
+        DRONE --> CDC  : throw IllegalStateException
+    end
+
+    DRONE -> DRONE : localizacao = destino\nbateria -= consumo
+    CDC   -> DRONE : sincronizarSensores()
+
+    loop para cada Sensor
+        DRONE -> SEN : coletarDados()
+        DRONE -> SEN : verificarStatus()
+        alt status == FALHA
+            SEN -> SEN : gerarAlerta()
+        end
+    end
+
+    CDC ->  NAV : desviarObstaculo(drone)
+else ameaca == true
+    DRONE -> DRONE : entrarModoAlerta()\nstatus = ALERTA
+end
+
+== 6. Telemetria ==
+
+DRONE -> CDC : receberTelemetria(drone, t)
+CDC   -> SC  : receberTelemetria(t)
+SC   --> CDC : conexaoAtiva && t != null
+CDC  ->  LOG : new LogAuditoria(ALTERACAO_STATUS)
+
+== 7. Finalização ==
+
+OP  ->  MIS  : finalizarMissao(op)
+MIS ->  MIS  : validarPermissao(op)
+MIS ->  MIS  : status = SUCESSO\ndataFim = Instant.now()
+MIS ->  LOG  : new LogAuditoria(ALTERACAO_STATUS)
+
+CDC ->  MIS  : sincronizarLogsMissao(missao)
+MIS --> CDC  : Set<LogAuditoria>
+CDC ->  CDC  : merge logs sem duplicatas
+
+note over OP, LOG
+    <b>Alternativa ao passo 7 — Abortar:</b>
+    OP → MIS : abortarMissao(motivo, op)
+    MIS → MIS : status = ABORTADA · motivoAborto = motivo · dataFim = Instant.now()
+    MIS → LOG : new LogAuditoria(ALTERACAO_STATUS, "Abortada: " + motivo)
+end note
+
+@enduml
