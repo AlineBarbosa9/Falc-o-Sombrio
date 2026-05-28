@@ -22,7 +22,7 @@ public class DroneDAO {
             throw new IllegalArgumentException("Drone sem localização");
         }
 
-        String sql = "INSERT INTO drones (id, modelo, status, bateria, latitude, longitude, altitude) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO drones (id, modelo, status, bateria, latitude, longitude, altitude, missaoId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = ConexaoDB.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -34,6 +34,7 @@ public class DroneDAO {
             stmt.setDouble(5, drone.getLocalizacao().getLatitude());
             stmt.setDouble(6, drone.getLocalizacao().getLongitude());
             stmt.setDouble(7, drone.getLocalizacao().getAltitude());
+            stmt.setObject(8, drone.getMissaoId());
 
             stmt.executeUpdate();
 
