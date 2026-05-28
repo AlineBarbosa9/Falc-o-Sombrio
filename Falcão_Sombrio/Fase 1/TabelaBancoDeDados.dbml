@@ -1,0 +1,70 @@
+Table operadores {
+  id UUID [pk]
+  nome varchar(120) [not null]
+  email varchar(160) [unique, not null]
+  senhaHash varchar(255) [not null]
+  nivelAcesso NivelAcesso [not null]
+  mfaSecret varchar(255)
+}
+
+Table missoes {
+  id UUID [pk]
+  objetivo varchar(255) [not null]
+  status StatusMissao [not null]
+  pontoEntrada_lat decimal(9,6) [not null]
+  pontoEntrada_lon decimal(9,6) [not null]
+  pontoEntrada_alt double
+  raioOperacao double [not null]
+  dataInicio timestamp
+  dataFim timestamp
+  motivoAborto varchar(255)
+  operadorResponsavelId UUID
+}
+
+Table drones {
+  id UUID [pk]
+  modelo varchar(100) [not null]
+  bateria double [not null]
+  status StatusDrone [not null]
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  altitude double
+  missaoId UUID
+}
+
+Table sensores {
+  id UUID [pk]
+  tipo TipoSensor [not null]
+  status StatusSensor [not null]
+  droneId UUID [not null]
+}
+
+Table telemetria {
+  id UUID [pk]
+  droneId UUID [not null]
+  missaoId UUID
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  altitude double
+  velocidade double
+  timestamp timestamp [not null]
+}
+
+Table logs_auditoria {
+  id UUID [pk]
+  usuarioId UUID
+  missaoId UUID
+  droneId UUID
+  acao TipoAcao [not null]
+  timestamp timestamp [not null]
+  detalhes varchar(255)
+}
+
+Ref: missoes.operadorResponsavelId > operadores.id
+Ref: drones.missaoId > missoes.id
+Ref: sensores.droneId > drones.id
+Ref: telemetria.droneId > drones.id
+Ref: telemetria.missaoId > missoes.id
+Ref: logs_auditoria.usuarioId > operadores.id
+Ref: logs_auditoria.missaoId > missoes.id
+Ref: logs_auditoria.droneId > drones.id
