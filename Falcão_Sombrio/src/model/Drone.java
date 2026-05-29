@@ -7,15 +7,16 @@ import java.util.UUID;
 import enums.StatusDrone;
 
 public class Drone {
-	
-	// Atributos Privados
+
+    // Atributos Privados
     private final UUID id;
     private final String modelo;
     private StatusDrone status;
     private double bateria;
     private Coordenadas localizacao;
     private final List<Sensor> sensores;
-    
+    private UUID missaoId;
+
     // Construtor Público
     public Drone(String modelo, Coordenadas localizacaoInicial) {
         if (modelo == null || modelo.isBlank()) {
@@ -31,8 +32,9 @@ public class Drone {
         this.status = StatusDrone.IDLE;
         this.bateria = 100.0;
         this.sensores = new ArrayList<>();
+        this.missaoId = null;
     }
-    
+
     public Drone(UUID id, String modelo, Coordenadas localizacao, StatusDrone status, double bateria) {
         this.id = id;
         this.modelo = modelo;
@@ -40,14 +42,15 @@ public class Drone {
         this.status = status;
         this.bateria = bateria;
         this.sensores = new ArrayList<>();
+        this.missaoId = null;
     }
 
     public void moverPara(Coordenadas destino, double consumo) {
-    	
-    	if (destino == null) {
-    	    throw new IllegalArgumentException("Destino inválido");
-    	}
-    	
+
+        if (destino == null) {
+            throw new IllegalArgumentException("Destino inválido");
+        }
+
         validarOperacao(consumo);
 
         this.localizacao = destino;
@@ -62,7 +65,7 @@ public class Drone {
             throw new IllegalStateException("Energia insuficiente para operação segura");
         }
     }
-    
+
     // Atualiza a Bateria Após Consumo
     private void consumirBateria(double consumo) {
         this.bateria -= consumo;
@@ -71,7 +74,7 @@ public class Drone {
             entrarModoAlerta();
         }
     }
-    
+
     // Altera Para o Modo Alerta
     protected void entrarModoAlerta() {
         this.status = StatusDrone.ALERTA;
@@ -84,7 +87,7 @@ public class Drone {
         }
         this.sensores.add(sensor);
     }
-    
+
     // Sincronização de Sensores
     public void sincronizarSensores() {
         for (Sensor s : sensores) {
@@ -92,7 +95,7 @@ public class Drone {
             s.verificarStatus();
         }
     }
-    
+
     // Getters
     public UUID getId() {
         return id;
@@ -111,5 +114,11 @@ public class Drone {
     }
     public List<Sensor> getSensores() {
         return List.copyOf(sensores);
+    }
+    public UUID getMissaoId() {
+        return missaoId;
+    }
+    public void setMissaoId(UUID missaoId) {
+        this.missaoId = missaoId;
     }
 }
