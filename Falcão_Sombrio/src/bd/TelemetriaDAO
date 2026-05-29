@@ -55,7 +55,6 @@ public class TelemetriaDAO {
 
                 if (rs.next()) {
                     return new Telemetria(
-                            (UUID) rs.getObject("id"),
                             (UUID) rs.getObject("droneId"),
                             (UUID) rs.getObject("missaoId"),
                             rs.getDouble("latitude"),
