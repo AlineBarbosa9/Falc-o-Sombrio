@@ -104,11 +104,11 @@ public class CentralDeControle {
     public void sincronizarLogsMissao(Missao missao) {
         if (missao == null) return;
 
-        for (LogAuditoria log : missao.getLogs()) {
-            if (!logs.contains(log)) {
-                logs.add(log);
-            }
-        }
+        //for (LogAuditoria log : missao.getLogs()) {
+            //if (!logs.contains(log)) {
+               // logs.add(log);
+           // }
+        //}
     }
 
     public List<Drone> getFrota() {
